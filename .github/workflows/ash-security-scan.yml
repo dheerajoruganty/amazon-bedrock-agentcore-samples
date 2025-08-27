@@ -213,22 +213,23 @@ jobs:
               const commentBody = fs.readFileSync(commentPath, 'utf8');
               const issueNumber = context.issue.number;
               
-              // Check if we already commented
+              // Check if we already have an ASH security scan comment
               const { data: comments } = await github.rest.issues.listComments({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: issueNumber,
               });
               
+              // Look for the specific ASH security scan comment using our unique identifier
               const botComment = comments.find(comment => 
                 comment.user.type === 'Bot' && 
-                comment.body.includes('Security Scan Results')
+                comment.body.includes('<!-- ASH-SECURITY-SCAN-COMMENT -->')
               );
               
-              // Add commit and timestamp info to the body
+              // Add commit and timestamp info to the body with unique identifier
               const commitSha = context.payload.pull_request?.head?.sha || context.sha;
               const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 19) + ' UTC';
-              const enhancedBody = `**Latest scan for commit:** \`${commitSha.substring(0, 7)}\` **| Updated:** ${timestamp}\n\n${commentBody}`;
+              const enhancedBody = `**Latest scan for commit:** \`${commitSha.substring(0, 7)}\` **| Updated:** ${timestamp}\n\n${commentBody}\n\n<!-- ASH-SECURITY-SCAN-COMMENT -->`;
               
               if (botComment) {
                 // Update existing comment with latest scan
