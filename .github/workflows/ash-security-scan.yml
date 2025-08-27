@@ -61,6 +61,10 @@ jobs:
           pip install semgrep>=1.125.0
           pip install detect-secrets
           pip install checkov>=3.2.0
+          # Install additional scanners to reduce MISSING status
+          gem install cfn-nag || echo "cfn-nag installation failed"
+          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin || echo "grype installation failed"
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin || echo "syft installation failed"
 
       - name: Create temp directory for changed files
         if: steps.changed-files.outputs.any_changed == 'true'
@@ -98,7 +102,8 @@ jobs:
           
           # Check if ASH results exist
           if [ -f "/tmp/ash-scan/.ash/ash_output/reports/ash.summary.md" ]; then
-            cat "/tmp/ash-scan/.ash/ash_output/reports/ash.summary.md" >> "$SUMMARY_FILE"
+            # Filter out redundant "Time since scan" line from ASH report
+            sed '/^Time since scan:/d' "/tmp/ash-scan/.ash/ash_output/reports/ash.summary.md" >> "$SUMMARY_FILE"
             echo "has_findings=true" >> $GITHUB_OUTPUT
           elif [ -d "/tmp/ash-scan/.ash" ]; then
             # Check for any findings in the output directory
@@ -153,11 +158,11 @@ jobs:
         if: steps.changed-files.outputs.any_changed == 'true'
         run: |
           if [ "${{ steps.process-results.outputs.has_findings }}" = "true" ]; then
-            echo "⚠️ Security findings detected. Please review the results."
+            echo "Security findings detected. Please review the results."
           else
-            echo "✅ No security issues found in the changed files."
+            echo "No security issues found in the changed files."
           fi
 
       - name: Skip message
         if: steps.changed-files.outputs.any_changed == 'false'
-        run: echo "ℹ️ No relevant files changed - skipping security scan"
+        run: echo "No relevant files changed - skipping security scan"
