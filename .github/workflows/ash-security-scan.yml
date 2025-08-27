@@ -52,9 +52,15 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Install ASH
+      - name: Install ASH and scanner dependencies
         if: steps.changed-files.outputs.any_changed == 'true'
-        run: pip install git+https://github.com/awslabs/automated-security-helper.git@v3.0.0
+        run: |
+          pip install git+https://github.com/awslabs/automated-security-helper.git@v3.0.0
+          # Install scanner tools that ASH needs
+          pip install bandit>=1.7.0
+          pip install semgrep>=1.125.0
+          pip install detect-secrets
+          pip install checkov>=3.2.0
 
       - name: Create temp directory for changed files
         if: steps.changed-files.outputs.any_changed == 'true'
@@ -78,7 +84,7 @@ jobs:
         if: steps.changed-files.outputs.any_changed == 'true'
         run: |
           cd /tmp/ash-scan
-          ash --mode local
+          ash --mode local --fail-on-findings
         continue-on-error: true
 
       - name: Process scan results and create summary
@@ -87,44 +93,27 @@ jobs:
         run: |
           SUMMARY_FILE="/tmp/pr_comment.md"
           
-          echo "# 🔒 ASH Security Scan Results" > "$SUMMARY_FILE"
+          echo "## Security Scan Results" > "$SUMMARY_FILE"
           echo "" >> "$SUMMARY_FILE"
           
           # Check if ASH results exist
           if [ -f "/tmp/ash-scan/.ash/ash_output/reports/ash.summary.md" ]; then
-            echo "## Security Findings" >> "$SUMMARY_FILE"
-            echo "" >> "$SUMMARY_FILE"
             cat "/tmp/ash-scan/.ash/ash_output/reports/ash.summary.md" >> "$SUMMARY_FILE"
-            echo "" >> "$SUMMARY_FILE"
             echo "has_findings=true" >> $GITHUB_OUTPUT
           elif [ -d "/tmp/ash-scan/.ash" ]; then
             # Check for any findings in the output directory
             if find "/tmp/ash-scan/.ash" -name "*.json" -o -name "*.sarif" | grep -q .; then
-              echo "⚠️ **Security scan completed with findings**" >> "$SUMMARY_FILE"
-              echo "" >> "$SUMMARY_FILE"
-              echo "Please check the uploaded artifacts for detailed results." >> "$SUMMARY_FILE"
-              echo "" >> "$SUMMARY_FILE"
+              echo "Security scan completed with findings. Check artifacts for details." >> "$SUMMARY_FILE"
               echo "has_findings=true" >> $GITHUB_OUTPUT
             else
-              echo "✅ **No security issues detected in the changed files**" >> "$SUMMARY_FILE"
-              echo "" >> "$SUMMARY_FILE"
+              echo "No security issues detected." >> "$SUMMARY_FILE"
               echo "has_findings=false" >> $GITHUB_OUTPUT
             fi
           else
-            echo "✅ **Security scan completed - no issues found**" >> "$SUMMARY_FILE"
-            echo "" >> "$SUMMARY_FILE"
+            echo "No security issues found." >> "$SUMMARY_FILE"
             echo "has_findings=false" >> $GITHUB_OUTPUT
           fi
           
-          echo "## Files Scanned" >> "$SUMMARY_FILE"
-          echo "" >> "$SUMMARY_FILE"
-          for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
-            echo "- \`$file\`" >> "$SUMMARY_FILE"
-          done
-          
-          echo "" >> "$SUMMARY_FILE"
-          echo "---" >> "$SUMMARY_FILE"
-          echo "*🤖 Automated security scan by [AWS ASH](https://github.com/awslabs/automated-security-helper)*" >> "$SUMMARY_FILE"
 
       - name: Upload ASH results
         if: steps.changed-files.outputs.any_changed == 'true' && always()
@@ -149,35 +138,15 @@ jobs:
               const commentBody = fs.readFileSync(commentPath, 'utf8');
               const issueNumber = context.issue.number;
               
-              // Check if we already commented
-              const { data: comments } = await github.rest.issues.listComments({
+              // Always create a new comment for each scan/commit
+              await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: issueNumber,
+                body: commentBody
               });
               
-              const botComment = comments.find(comment => 
-                comment.user.type === 'Bot' && 
-                comment.body.includes('🔒 ASH Security Scan Results')
-              );
-              
-              if (botComment) {
-                // Update existing comment
-                await github.rest.issues.updateComment({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  comment_id: botComment.id,
-                  body: commentBody
-                });
-              } else {
-                // Create new comment
-                await github.rest.issues.createComment({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: issueNumber,
-                  body: commentBody
-                });
-              }
+              console.log('Created new ASH security scan comment');
             }
 
       - name: Security scan summary
