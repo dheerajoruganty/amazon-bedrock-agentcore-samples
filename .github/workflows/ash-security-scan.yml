@@ -89,7 +89,7 @@ jobs:
         run: |
           cd /tmp/ash-scan
           ash --mode local --fail-on-findings
-        continue-on-error: true
+        continue-on-error: false
 
       - name: Process scan results and create summary
         if: steps.changed-files.outputs.any_changed == 'true'
@@ -102,8 +102,8 @@ jobs:
           
           # Check if ASH results exist
           if [ -f "/tmp/ash-scan/.ash/ash_output/reports/ash.summary.md" ]; then
-            # Filter out redundant "Time since scan" line from ASH report
-            sed '/^Time since scan:/d' "/tmp/ash-scan/.ash/ash_output/reports/ash.summary.md" >> "$SUMMARY_FILE"
+            # Filter out redundant information from ASH report
+            sed -e '/^Time since scan:/d' -e '/^Report generated:/d' "/tmp/ash-scan/.ash/ash_output/reports/ash.summary.md" >> "$SUMMARY_FILE"
             echo "has_findings=true" >> $GITHUB_OUTPUT
           elif [ -d "/tmp/ash-scan/.ash" ]; then
             # Check for any findings in the output directory
@@ -143,15 +143,41 @@ jobs:
               const commentBody = fs.readFileSync(commentPath, 'utf8');
               const issueNumber = context.issue.number;
               
-              // Always create a new comment for each scan/commit
-              await github.rest.issues.createComment({
+              // Check if we already commented
+              const { data: comments } = await github.rest.issues.listComments({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: issueNumber,
-                body: commentBody
               });
               
-              console.log('Created new ASH security scan comment');
+              const botComment = comments.find(comment => 
+                comment.user.type === 'Bot' && 
+                comment.body.includes('Security Scan Results')
+              );
+              
+              // Add commit info to the body
+              const commitSha = context.payload.pull_request?.head?.sha || context.sha;
+              const enhancedBody = `**Latest scan for commit:** \`${commitSha.substring(0, 7)}\`\n\n${commentBody}`;
+              
+              if (botComment) {
+                // Update existing comment with latest scan
+                await github.rest.issues.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: botComment.id,
+                  body: enhancedBody
+                });
+                console.log('Updated existing ASH security scan comment');
+              } else {
+                // Create new comment
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issueNumber,
+                  body: enhancedBody
+                });
+                console.log('Created new ASH security scan comment');
+              }
             }
 
       - name: Security scan summary
