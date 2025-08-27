@@ -96,12 +96,60 @@ jobs:
             echo "" >> "$SUMMARY_FILE"
             
             if [ "$TABLE_START" != "0" ] && [ "$TABLE_END" != "0" ] && [ "$TABLE_END" -gt "$TABLE_START" ]; then
-              # Use accurate terminal output for scanner status
-              echo "### Scanner Status" >> "$SUMMARY_FILE"
-              echo '```' >> "$SUMMARY_FILE"
-              # Strip ANSI color codes and extract the table
-              sed -n "${TABLE_START},${TABLE_END}p" /tmp/ash-output.log | sed 's/\x1b\[[0-9;]*m//g' >> "$SUMMARY_FILE"
-              echo '```' >> "$SUMMARY_FILE"
+              # Add scan metadata and explanation
+              echo "### Scan Metadata" >> "$SUMMARY_FILE"
+              echo "" >> "$SUMMARY_FILE"
+              echo "- **Project**: ASH" >> "$SUMMARY_FILE"
+              echo "- **Scan executed**: $(date -u +%Y-%m-%dT%H:%M:%S+00:00)" >> "$SUMMARY_FILE"
+              echo "- **ASH version**: 3.0.0" >> "$SUMMARY_FILE"
+              echo "" >> "$SUMMARY_FILE"
+              
+              echo "### Summary" >> "$SUMMARY_FILE"
+              echo "" >> "$SUMMARY_FILE"
+              echo "#### Scanner Results" >> "$SUMMARY_FILE"
+              echo "" >> "$SUMMARY_FILE"
+              echo "The table below shows findings by scanner, with status based on severity thresholds and dependencies:" >> "$SUMMARY_FILE"
+              echo "" >> "$SUMMARY_FILE"
+              echo "**Severity levels:**" >> "$SUMMARY_FILE"
+              echo "- **Suppressed (S)**: Findings that have been explicitly suppressed and don't affect scanner status" >> "$SUMMARY_FILE"
+              echo "- **Critical (C)**: Highest severity findings that require immediate attention" >> "$SUMMARY_FILE"
+              echo "- **High (H)**: Serious findings that should be addressed soon" >> "$SUMMARY_FILE"
+              echo "- **Medium (M)**: Moderate risk findings" >> "$SUMMARY_FILE"
+              echo "- **Low (L)**: Lower risk findings" >> "$SUMMARY_FILE"
+              echo "- **Info (I)**: Informational findings with minimal risk" >> "$SUMMARY_FILE"
+              echo "- **Duration (Time)**: Time taken by the scanner to complete its execution" >> "$SUMMARY_FILE"
+              echo "- **Actionable**: Number of findings at or above the threshold severity level that require attention" >> "$SUMMARY_FILE"
+              echo "" >> "$SUMMARY_FILE"
+              echo "**Result:**" >> "$SUMMARY_FILE"
+              echo "- **PASSED** = No findings at or above threshold" >> "$SUMMARY_FILE"
+              echo "- **FAILED** = Findings at or above threshold" >> "$SUMMARY_FILE"
+              echo "- **MISSING** = Required dependencies not available" >> "$SUMMARY_FILE"
+              echo "- **SKIPPED** = Scanner explicitly disabled" >> "$SUMMARY_FILE"
+              echo "- **ERROR** = Scanner execution error" >> "$SUMMARY_FILE"
+              echo "" >> "$SUMMARY_FILE"
+              echo "**Threshold**: The minimum severity level that will cause a scanner to fail" >> "$SUMMARY_FILE"
+              echo "- Thresholds: ALL, LOW, MEDIUM, HIGH, CRITICAL" >> "$SUMMARY_FILE"
+              echo "- Source: Values in parentheses indicate where the threshold is set:" >> "$SUMMARY_FILE"
+              echo "  - **global** (global_settings section in the ASH_CONFIG used)" >> "$SUMMARY_FILE"
+              echo "  - **config** (scanner config section in the ASH_CONFIG used)" >> "$SUMMARY_FILE"
+              echo "  - **scanner** (default configuration in the plugin, if explicitly set)" >> "$SUMMARY_FILE"
+              echo "" >> "$SUMMARY_FILE"
+              echo "**Statistics calculation:**" >> "$SUMMARY_FILE"
+              echo "- All statistics are calculated from the final aggregated SARIF report" >> "$SUMMARY_FILE"
+              echo "- Suppressed findings are counted separately and do not contribute to actionable findings" >> "$SUMMARY_FILE"
+              echo "- Scanner status is determined by comparing actionable findings to the threshold" >> "$SUMMARY_FILE"
+              echo "" >> "$SUMMARY_FILE"
+              
+              # Convert terminal table to markdown table format
+              echo "| Scanner | S | C | H | M | L | I | Time | Action | Result | Thresh |" >> "$SUMMARY_FILE"
+              echo "|---------|---|---|---|---|---|---|------|--------|--------|--------|" >> "$SUMMARY_FILE"
+              # Extract table data, strip ANSI codes, and convert to markdown
+              sed -n "${TABLE_START},${TABLE_END}p" /tmp/ash-output.log | \
+              sed 's/\x1b\[[0-9;]*m//g' | \
+              grep "^│" | \
+              sed 's/│/|/g' | \
+              sed 's/^ *|/|/' | \
+              sed 's/| *$/|/' >> "$SUMMARY_FILE"
               echo "" >> "$SUMMARY_FILE"
               
               # Add detailed findings
