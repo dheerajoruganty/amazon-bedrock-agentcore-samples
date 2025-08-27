@@ -78,7 +78,16 @@ jobs:
         if: steps.changed-files.outputs.any_changed == 'true'
         run: |
           cd /tmp/ash-scan
-          ash --mode container 2>&1 | tee /tmp/ash-output.log
+          # Create temporary ASH config to show all findings
+          cat > .ash_config.yaml << 'EOF'
+          reporters:
+            markdown:
+              enabled: true
+              options:
+                include_detailed_findings: true
+                max_detailed_findings: 1000
+          EOF
+          ash --mode container --config .ash_config.yaml 2>&1 | tee /tmp/ash-output.log
         continue-on-error: true
 
       - name: Process scan results and create summary
