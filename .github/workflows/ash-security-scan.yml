@@ -89,7 +89,7 @@ jobs:
         run: |
           cd /tmp/ash-scan
           ash --mode local --fail-on-findings
-        continue-on-error: false
+        continue-on-error: true
 
       - name: Process scan results and create summary
         if: steps.changed-files.outputs.any_changed == 'true'
@@ -131,7 +131,8 @@ jobs:
           retention-days: 30
 
       - name: Add PR comment
-        if: steps.changed-files.outputs.any_changed == 'true' && always()
+        if: steps.changed-files.outputs.any_changed == 'true'
+        # Always run this step even if ASH scan failed
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -180,11 +181,13 @@ jobs:
               }
             }
 
-      - name: Security scan summary
+      - name: Security scan summary and fail if needed
         if: steps.changed-files.outputs.any_changed == 'true'
         run: |
           if [ "${{ steps.process-results.outputs.has_findings }}" = "true" ]; then
             echo "Security findings detected. Please review the results."
+            echo "Failing workflow due to security findings"
+            exit 1
           else
             echo "No security issues found in the changed files."
           fi
