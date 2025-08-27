@@ -225,9 +225,10 @@ jobs:
                 comment.body.includes('Security Scan Results')
               );
               
-              // Add commit info to the body
+              // Add commit and timestamp info to the body
               const commitSha = context.payload.pull_request?.head?.sha || context.sha;
-              const enhancedBody = `**Latest scan for commit:** \`${commitSha.substring(0, 7)}\`\n\n${commentBody}`;
+              const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 19) + ' UTC';
+              const enhancedBody = `**Latest scan for commit:** \`${commitSha.substring(0, 7)}\` **| Updated:** ${timestamp}\n\n${commentBody}`;
               
               if (botComment) {
                 // Update existing comment with latest scan
