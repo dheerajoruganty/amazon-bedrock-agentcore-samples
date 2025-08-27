@@ -227,14 +227,41 @@ jobs:
                 console.log(`Bot comment ${comment.id}: ${comment.body.substring(0, 100)}...`);
               });
               
-              // Look for ANY existing ASH security scan comment (with or without identifier)
-              const botComment = comments.find(comment => 
+              // Find ALL ASH security scan comments 
+              const ashComments = comments.filter(comment => 
                 comment.user.type === 'Bot' && 
                 (comment.body.includes('<!-- ASH-SECURITY-SCAN-COMMENT -->') ||
                  comment.body.includes('## Security Scan Results') ||
                  comment.body.includes('Latest scan for commit:') ||
                  comment.body.includes('ASH Security Scan Report'))
               );
+              
+              console.log(`Found ${ashComments.length} ASH security scan comments`);
+              
+              // Use the most recent ASH comment (highest ID = most recent)
+              const botComment = ashComments.length > 0 ? 
+                ashComments.sort((a, b) => b.id - a.id)[0] : null;
+              
+              if (botComment) {
+                console.log(`Will update most recent ASH comment: ${botComment.id}`);
+              }
+              
+              // Delete any duplicate/older ASH comments (keep only the most recent one)
+              if (ashComments.length > 1) {
+                console.log(`Cleaning up ${ashComments.length - 1} duplicate ASH comments`);
+                for (const comment of ashComments.slice(1)) { // Skip the first (most recent) one
+                  try {
+                    await github.rest.issues.deleteComment({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      comment_id: comment.id,
+                    });
+                    console.log(`Deleted duplicate comment ${comment.id}`);
+                  } catch (error) {
+                    console.log(`Failed to delete comment ${comment.id}: ${error.message}`);
+                  }
+                }
+              }
               
               // Add commit and timestamp info to the body with unique identifier
               const commitSha = context.payload.pull_request?.head?.sha || context.sha;
