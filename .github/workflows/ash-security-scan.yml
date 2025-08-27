@@ -52,13 +52,9 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Install uv
-        if: steps.changed-files.outputs.any_changed == 'true'
-        uses: astral-sh/setup-uv@v3
-
       - name: Install ASH
         if: steps.changed-files.outputs.any_changed == 'true'
-        run: uv tool install git+https://github.com/awslabs/automated-security-helper.git@v3.0.0
+        run: pip install git+https://github.com/awslabs/automated-security-helper.git@v3.0.0
 
       - name: Create temp directory for changed files
         if: steps.changed-files.outputs.any_changed == 'true'
@@ -82,7 +78,7 @@ jobs:
         if: steps.changed-files.outputs.any_changed == 'true'
         run: |
           cd /tmp/ash-scan
-          uv tool run ash --mode local
+          ash --mode local
         continue-on-error: true
 
       - name: Process scan results and create summary
