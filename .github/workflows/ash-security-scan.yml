@@ -105,8 +105,15 @@ jobs:
             # Extract the results table from terminal output (which shows correct FAILED status)
             echo "### Scanner Results" >> "$SUMMARY_FILE"
             echo '```' >> "$SUMMARY_FILE"
-            # Extract the ASCII table from terminal output
-            sed -n '/ASH Scan Results Summary/,/source-dir:/p' /tmp/ash-terminal-output.txt >> "$SUMMARY_FILE"
+            # Extract lines between the table markers (more robust approach)
+            TABLE_START=$(grep -n "ASH Scan Results Summary" /tmp/ash-terminal-output.txt | cut -d: -f1 || echo "0")
+            TABLE_END=$(grep -n "source-dir:" /tmp/ash-terminal-output.txt | cut -d: -f1 || echo "999999")
+            if [ "$TABLE_START" != "0" ] && [ "$TABLE_END" != "999999" ]; then
+              sed -n "${TABLE_START},${TABLE_END}p" /tmp/ash-terminal-output.txt >> "$SUMMARY_FILE"
+            else
+              # Fallback: just grab the whole table section if markers not found
+              grep -A 20 "Scanner.*Result.*Thresh" /tmp/ash-terminal-output.txt >> "$SUMMARY_FILE" || echo "Table extraction failed"
+            fi
             echo '```' >> "$SUMMARY_FILE"
             echo "" >> "$SUMMARY_FILE"
             
