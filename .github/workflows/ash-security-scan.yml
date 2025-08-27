@@ -220,10 +220,20 @@ jobs:
                 issue_number: issueNumber,
               });
               
-              // Look for the specific ASH security scan comment using our unique identifier
+              // Debug: Log all bot comments to understand what we have
+              const botComments = comments.filter(comment => comment.user.type === 'Bot');
+              console.log(`Found ${botComments.length} bot comments`);
+              botComments.forEach(comment => {
+                console.log(`Bot comment ${comment.id}: ${comment.body.substring(0, 100)}...`);
+              });
+              
+              // Look for ANY existing ASH security scan comment (with or without identifier)
               const botComment = comments.find(comment => 
                 comment.user.type === 'Bot' && 
-                comment.body.includes('<!-- ASH-SECURITY-SCAN-COMMENT -->')
+                (comment.body.includes('<!-- ASH-SECURITY-SCAN-COMMENT -->') ||
+                 comment.body.includes('## Security Scan Results') ||
+                 comment.body.includes('Latest scan for commit:') ||
+                 comment.body.includes('ASH Security Scan Report'))
               );
               
               // Add commit and timestamp info to the body with unique identifier
@@ -233,22 +243,24 @@ jobs:
               
               if (botComment) {
                 // Update existing comment with latest scan
+                console.log(`Updating existing comment ${botComment.id}`);
                 await github.rest.issues.updateComment({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   comment_id: botComment.id,
                   body: enhancedBody
                 });
-                console.log('Updated existing ASH security scan comment');
+                console.log('Successfully updated existing ASH security scan comment');
               } else {
                 // Create new comment
+                console.log('No existing ASH comment found, creating new one');
                 await github.rest.issues.createComment({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   issue_number: issueNumber,
                   body: enhancedBody
                 });
-                console.log('Created new ASH security scan comment');
+                console.log('Successfully created new ASH security scan comment');
               }
             }
 
