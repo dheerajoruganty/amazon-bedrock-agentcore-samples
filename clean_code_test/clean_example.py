@@ -5,8 +5,7 @@ import logging
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 
 logger = logging.getLogger(__name__)
@@ -57,7 +56,7 @@ class DataProcessor:
             "id": item.get("id", ""),
             "processed": True,
             "processor": self.name,
-            "data": item
+            "data": item,
         }
 
     def get_statistics(self) -> Dict[str, Any]:
@@ -69,7 +68,7 @@ class DataProcessor:
         return {
             "processor_name": self.name,
             "batch_size": self.batch_size,
-            "total_processed": self.processed_count
+            "total_processed": self.processed_count,
         }
 
 
@@ -88,8 +87,7 @@ def calculate_average(numbers: List[float]) -> Optional[float]:
 
 
 def filter_valid_items(
-    items: List[Dict[str, Any]],
-    required_fields: List[str]
+    items: List[Dict[str, Any]], required_fields: List[str]
 ) -> List[Dict[str, Any]]:
     """Filter items that have all required fields.
 
@@ -112,15 +110,15 @@ def filter_valid_items(
 if __name__ == "__main__":
     # Example usage
     processor = DataProcessor("example_processor")
-    
+
     sample_data = [
         {"id": "1", "value": 100},
         {"id": "2", "value": 200},
-        {"id": "3", "value": 300}
+        {"id": "3", "value": 300},
     ]
-    
+
     processed = processor.process_batch(sample_data)
     stats = processor.get_statistics()
-    
+
     print(f"Processing complete: {stats}")
     print(f"Average value: {calculate_average([100.0, 200.0, 300.0])}")
