@@ -42,3 +42,6 @@ This PR should trigger failures/warnings in:
 ## WARNING
 
 **These files contain intentional security vulnerabilities and bad code for testing purposes only. DO NOT use any of this code in production!**
+
+## Updated Testing
+This PR now includes the latest ASH workflow fixes to ensure all scanners run properly instead of being skipped.
