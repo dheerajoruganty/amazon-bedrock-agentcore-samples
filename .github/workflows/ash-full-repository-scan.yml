@@ -10,7 +10,6 @@ on:
 
 permissions:
   contents: read
-  security-events: write  # For uploading SARIF results to GitHub Security tab
 
 jobs:
   full-scan:
@@ -39,8 +38,6 @@ jobs:
               options:
                 include_detailed_findings: true
                 max_detailed_findings: 1000
-            sarif:
-              enabled: true
           EOF
           
           # Run ASH on entire repository
@@ -119,12 +116,6 @@ jobs:
             ash-summary.md
           retention-days: 90
 
-      - name: Upload SARIF results to GitHub Security
-        if: always() && hashFiles('.ash/ash_output/reports/ash.sarif') != ''
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: .ash/ash_output/reports/ash.sarif
-          category: ash-security-scan
 
       - name: Create issue for critical findings (monthly scan only)
         if: github.event_name == 'schedule' && steps.scan-summary.outputs.has_findings == 'true'
