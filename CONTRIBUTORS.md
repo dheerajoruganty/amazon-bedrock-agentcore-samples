@@ -6,19 +6,35 @@
 - aristsakpinis93
 - aurbac
 - bergjaak
+- crupakheti
+- danystinson
 - dhawalkp
+- didhd
 - EashanKaushik
+- Grace Lang
 - khastation
 - manchandakp
+- Meghana Ashok
 - mttanke
 - mvangara10
+- ozhn
 - rahullks
 - rameshv29
 - rohillasandeep
 - satveerkhurpa
+- seanslavichaws
 - sssumarss
 - sundargthb
 - vedashree1110
 - vedashreevinay
 - vgodwinamz
 - w601sxs
+- erezweinstein5
+- HardikThakkar94
+- brianloyal
+- jagdeep1
+- Sunil Ramachandra
+- Sandeep Raveesh-Babu
+- chintanpatel-ai
+- Evandro Franco
+- Frank Dallezotte
